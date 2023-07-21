@@ -23,31 +23,31 @@ import javax.inject.Inject
 import kotlin.coroutines.EmptyCoroutineContext
 
 @AndroidEntryPoint
-class BackgroundGpsService @Inject constructor() : Service() {
+class BackgroundGpsService : Service() {
 
     @Inject
     lateinit var gpsLocationRepository: GpsLocationRepository
 
     @Inject
-    lateinit var lastLocationRepository: CurrentRideRepository
+    lateinit var currentRideRepository: CurrentRideRepository
 
     private val scope = CoroutineScope(EmptyCoroutineContext)
 
     override fun onCreate() {
         super.onCreate()
 
-        Log.d("BackgroundGpsService", "onCreate() called")
+        Log.v("BackgroundGpsService", "onCreate() called")
     }
 
     override fun onBind(intent: Intent): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("BackgroundGpsService", "onStartCommand() called with: intent = $intent, flags = $flags, startId = $startId")
+        Log.v("BackgroundGpsService", "onStartCommand() called with: intent = $intent, flags = $flags, startId = $startId")
 
         val channelId = "RIDES"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Ride en cours"
-            val descriptionText = "Apparait lorsque vous faites une ride"
+            val name = "Ongoing rides"
+            val descriptionText = "Notify you're doing a ride"
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(channelId, name, importance).apply {
                 description = descriptionText
@@ -71,19 +71,19 @@ class BackgroundGpsService @Inject constructor() : Service() {
         )
 
         val notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Ride en cours")
-            .setContentText("Let's go faire le véloooo")
+            .setContentTitle("Ongoing Ride")
+            .setContentText("Let's go do the biiiiike")
             .setSmallIcon(R.drawable.share_location)
             .setContentIntent(onNotificationClickPendingIntent)
             .setForegroundServiceBehavior(FOREGROUND_SERVICE_IMMEDIATE)
-            .addAction(R.drawable.stop, "Finir la ride", onStopRideClickPendingIntent)
+            .addAction(R.drawable.stop, "Finish the ride", onStopRideClickPendingIntent)
             .build()
         startForeground(1, notification)
 
         scope.launch {
             gpsLocationRepository.getLocation().collect { location ->
-                Log.d("BackgroundGpsService", "getLocation().collect() called with: location = $location")
-                lastLocationRepository.locationsFlow.update { it + location }
+                Log.v("BackgroundGpsService", "getLocation().collect() called with: location = $location")
+                currentRideRepository.locationsFlow.update { it + location }
             }
         }
 
@@ -93,7 +93,7 @@ class BackgroundGpsService @Inject constructor() : Service() {
     override fun onDestroy() {
         super.onDestroy()
 
-        Log.d("BackgroundGpsService", "onDestroy() called")
+        Log.v("BackgroundGpsService", "onDestroy() called")
 
         scope.cancel()
     }
